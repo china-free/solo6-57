@@ -1,5 +1,6 @@
 import { useStyleStore } from '@/store/useStyleStore';
 import { generatePreviewStyles } from '@/utils/cssGenerator';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function PreviewBox() {
   const borders = useStyleStore((state) => state.borders);
@@ -7,15 +8,32 @@ export default function PreviewBox() {
 
   const styles = generatePreviewStyles(borders, shadows);
 
-  const outerBorders = borders.filter((b) => b.type === 'outer');
-  const innerBorders = borders.filter((b) => b.type === 'inner');
-  const firstBorder = outerBorders[0] || borders[0];
+  const enabledBorders = borders.filter((b) => b.enabled);
+  const disabledBorders = borders.filter((b) => !b.enabled);
+  const enabledShadows = shadows.filter((s) => s.enabled);
+  const disabledShadows = shadows.filter((s) => !s.enabled);
+
+  const outerBorders = enabledBorders.filter((b) => b.type === 'outer');
+  const innerBorders = enabledBorders.filter((b) => b.type === 'inner');
+  const firstBorder = outerBorders[0] || enabledBorders[0];
 
   return (
     <div className="relative bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 shadow-xl shadow-black/20">
       <div className="absolute top-4 left-4 px-3 py-1 bg-slate-700/50 rounded-lg text-xs font-medium text-slate-300">
         预览
       </div>
+
+      {(disabledBorders.length > 0 || disabledShadows.length > 0) && (
+        <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-amber-500/20 border border-amber-500/30 rounded-lg text-xs font-medium text-amber-400">
+          <EyeOff className="w-3.5 h-3.5" />
+          <span>
+            {disabledBorders.length > 0 && `${disabledBorders.length} 边框`}
+            {disabledBorders.length > 0 && disabledShadows.length > 0 && ' + '}
+            {disabledShadows.length > 0 && `${disabledShadows.length} 阴影`}
+            {' 已停用'}
+          </span>
+        </div>
+      )}
 
       <div
         className="w-full h-64 md:h-80 flex items-center justify-center rounded-lg overflow-hidden"
@@ -56,7 +74,7 @@ export default function PreviewBox() {
         {outerBorders.length > 1 && (
           <>
             <div className="w-px h-4 bg-slate-600" />
-            <span>额外外边框: {outerBorders.length - 1} 层</span>
+            <span>外边框: {outerBorders.length} 层</span>
           </>
         )}
         {innerBorders.length > 0 && (
@@ -65,10 +83,31 @@ export default function PreviewBox() {
             <span>内边框: {innerBorders.length} 层</span>
           </>
         )}
-        {shadows.length > 0 && (
+        {enabledShadows.length > 0 && (
           <>
             <div className="w-px h-4 bg-slate-600" />
-            <span>阴影: {shadows.length} 层</span>
+            <span className="flex items-center gap-1">
+              <Eye className="w-3 h-3" />
+              阴影: {enabledShadows.length} 层
+            </span>
+          </>
+        )}
+        {borders.length > 0 && (
+          <>
+            <div className="w-px h-4 bg-slate-600" />
+            <span className="flex items-center gap-1 text-slate-500">
+              图层顺序: {borders.map((b, i) => (
+                <span key={b.id} className={!b.enabled ? 'opacity-40 line-through' : ''}>
+                  {i > 0 && ' → '}
+                  B{i + 1}
+                </span>
+              ))}
+              {shadows.map((s, i) => (
+                <span key={s.id} className={!s.enabled ? 'opacity-40 line-through' : ''}>
+                  {' → '}S{i + 1}
+                </span>
+              ))}
+            </span>
           </>
         )}
       </div>

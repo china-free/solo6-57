@@ -1,7 +1,7 @@
 import { useStyleStore } from '@/store/useStyleStore';
 import Slider from '@/components/common/Slider';
 import ColorPicker from '@/components/common/ColorPicker';
-import { Layers, Plus, Trash2, Sun, Moon } from 'lucide-react';
+import { Layers, Plus, Trash2, Sun, Moon, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ShadowPanel() {
@@ -11,6 +11,8 @@ export default function ShadowPanel() {
   const removeShadow = useStyleStore((state) => state.removeShadow);
   const updateShadow = useStyleStore((state) => state.updateShadow);
   const setActiveShadow = useStyleStore((state) => state.setActiveShadow);
+  const toggleShadowEnabled = useStyleStore((state) => state.toggleShadowEnabled);
+  const moveShadow = useStyleStore((state) => state.moveShadow);
 
   const activeShadow = shadows.find((s) => s.id === activeShadowId);
 
@@ -36,24 +38,97 @@ export default function ShadowPanel() {
       </div>
 
       {shadows.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="space-y-2 mb-5">
           {shadows.map((shadow, index) => (
-            <div key={shadow.id} className="flex items-center gap-1">
+            <div
+              key={shadow.id}
+              className={cn(
+                'flex items-center gap-2 p-2 rounded-xl transition-all',
+                activeShadowId === shadow.id
+                  ? 'bg-slate-700/60 border border-slate-600/60'
+                  : 'bg-slate-800/30 border border-transparent hover:bg-slate-700/40'
+              )}
+            >
               <button
                 onClick={() => setActiveShadow(shadow.id)}
-                className={cn(
-                  'px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2',
-                  activeShadowId === shadow.id
-                    ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-white border border-purple-500/50'
-                    : 'bg-slate-700/50 text-slate-300 border border-slate-600/50 hover:bg-slate-700'
-                )}
+                className="flex-1 flex items-center gap-2 py-1.5 px-2 text-sm font-medium rounded-lg transition-all"
               >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: shadow.color }} />
-                阴影 {index + 1}
+                <span
+                  className={cn(
+                    'w-2.5 h-2.5 rounded-full transition-all',
+                    !shadow.enabled && 'opacity-40'
+                  )}
+                  style={{ backgroundColor: shadow.color }}
+                />
+                <span className={cn('text-white', !shadow.enabled && 'opacity-50 line-through')}>
+                  阴影 {index + 1}
+                </span>
+                <span className={cn('text-xs opacity-60', !shadow.enabled && 'opacity-30')}>
+                  {shadow.type === 'outer' ? '外' : '内'}
+                </span>
               </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleShadowEnabled(shadow.id);
+                }}
+                className={cn(
+                  'p-1.5 rounded-lg transition-colors',
+                  shadow.enabled
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-600/50'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/30'
+                )}
+                title={shadow.enabled ? '停用阴影' : '启用阴影'}
+              >
+                {shadow.enabled ? (
+                  <Eye className="w-4 h-4" />
+                ) : (
+                  <EyeOff className="w-4 h-4" />
+                )}
+              </button>
+
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    moveShadow(shadow.id, 'up');
+                  }}
+                  disabled={index === 0}
+                  className={cn(
+                    'p-1 rounded-md transition-colors',
+                    index === 0
+                      ? 'text-slate-600 cursor-not-allowed'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-600/50'
+                  )}
+                  title="上移"
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    moveShadow(shadow.id, 'down');
+                  }}
+                  disabled={index === shadows.length - 1}
+                  className={cn(
+                    'p-1 rounded-md transition-colors',
+                    index === shadows.length - 1
+                      ? 'text-slate-600 cursor-not-allowed'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-600/50'
+                  )}
+                  title="下移"
+                >
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               {shadows.length > 1 && (
                 <button
-                  onClick={() => removeShadow(shadow.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeShadow(shadow.id);
+                  }}
                   className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                   title="删除阴影"
                 >

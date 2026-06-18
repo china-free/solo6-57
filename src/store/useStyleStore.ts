@@ -15,6 +15,7 @@ const createDefaultBorder = (index: number = 0): BorderConfig => {
     style: 'solid',
     color: defaultColors[index % defaultColors.length],
     radius: index === 0 ? 12 : 12 + offsets[index % offsets.length],
+    enabled: true,
   };
 };
 
@@ -26,10 +27,27 @@ const createDefaultShadow = (): ShadowConfig => ({
   blur: 20,
   spread: 0,
   color: 'rgba(0, 0, 0, 0.25)',
+  enabled: true,
 });
 
 const initialBorders: BorderConfig[] = [createDefaultBorder(0)];
 const initialShadows: ShadowConfig[] = [createDefaultShadow()];
+
+const moveItem = <T extends { id: string }>(
+  arr: T[],
+  id: string,
+  direction: 'up' | 'down'
+): T[] => {
+  const index = arr.findIndex((item) => item.id === id);
+  if (index === -1) return arr;
+
+  const newIndex = direction === 'up' ? index - 1 : index + 1;
+  if (newIndex < 0 || newIndex >= arr.length) return arr;
+
+  const newArr = [...arr];
+  [newArr[index], newArr[newIndex]] = [newArr[newIndex], newArr[index]];
+  return newArr;
+};
 
 export const useStyleStore = create<StyleState & StyleActions>((set) => ({
   borders: initialBorders,
@@ -72,6 +90,18 @@ export const useStyleStore = create<StyleState & StyleActions>((set) => ({
       activeBorderId: id,
     })),
 
+  toggleBorderEnabled: (id) =>
+    set((state) => ({
+      borders: state.borders.map((b) =>
+        b.id === id ? { ...b, enabled: !b.enabled } : b
+      ),
+    })),
+
+  moveBorder: (id, direction) =>
+    set((state) => ({
+      borders: moveItem(state.borders, id, direction),
+    })),
+
   addShadow: () => {
     const newShadow = createDefaultShadow();
     set((state) => ({
@@ -103,5 +133,17 @@ export const useStyleStore = create<StyleState & StyleActions>((set) => ({
   setActiveShadow: (id) =>
     set(() => ({
       activeShadowId: id,
+    })),
+
+  toggleShadowEnabled: (id) =>
+    set((state) => ({
+      shadows: state.shadows.map((s) =>
+        s.id === id ? { ...s, enabled: !s.enabled } : s
+      ),
+    })),
+
+  moveShadow: (id, direction) =>
+    set((state) => ({
+      shadows: moveItem(state.shadows, id, direction),
     })),
 }));

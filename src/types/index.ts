@@ -9,6 +9,7 @@ export interface BorderConfig {
   style: BorderStyle;
   color: string;
   radius: number;
+  enabled: boolean;
 }
 
 export type ShadowType = 'outer' | 'inner';
@@ -21,6 +22,7 @@ export interface ShadowConfig {
   blur: number;
   spread: number;
   color: string;
+  enabled: boolean;
 }
 
 export interface StyleState {
@@ -35,8 +37,13 @@ export interface StyleActions {
   removeBorder: (id: string) => void;
   updateBorder: (id: string, border: Partial<BorderConfig>) => void;
   setActiveBorder: (id: string | null) => void;
+  toggleBorderEnabled: (id: string) => void;
+  moveBorder: (id: string, direction: 'up' | 'down') => void;
+
   addShadow: () => void;
   removeShadow: (id: string) => void;
   updateShadow: (id: string, shadow: Partial<ShadowConfig>) => void;
   setActiveShadow: (id: string | null) => void;
+  toggleShadowEnabled: (id: string) => void;
+  moveShadow: (id: string, direction: 'up' | 'down') => void;
 }

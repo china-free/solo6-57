@@ -2,7 +2,7 @@ import { useStyleStore } from '@/store/useStyleStore';
 import Slider from '@/components/common/Slider';
 import ColorPicker from '@/components/common/ColorPicker';
 import Select from '@/components/common/Select';
-import { Square, Plus, Trash2, Sun, Moon } from 'lucide-react';
+import { Square, Plus, Trash2, Sun, Moon, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const borderStyleOptions = [
@@ -18,6 +18,8 @@ export default function BorderPanel() {
   const removeBorder = useStyleStore((state) => state.removeBorder);
   const updateBorder = useStyleStore((state) => state.updateBorder);
   const setActiveBorder = useStyleStore((state) => state.setActiveBorder);
+  const toggleBorderEnabled = useStyleStore((state) => state.toggleBorderEnabled);
+  const moveBorder = useStyleStore((state) => state.moveBorder);
 
   const activeBorder = borders.find((b) => b.id === activeBorderId);
 
@@ -43,27 +45,97 @@ export default function BorderPanel() {
       </div>
 
       {borders.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="space-y-2 mb-5">
           {borders.map((border, index) => (
-            <div key={border.id} className="flex items-center gap-1">
+            <div
+              key={border.id}
+              className={cn(
+                'flex items-center gap-2 p-2 rounded-xl transition-all',
+                activeBorderId === border.id
+                  ? 'bg-slate-700/60 border border-slate-600/60'
+                  : 'bg-slate-800/30 border border-transparent hover:bg-slate-700/40'
+              )}
+            >
               <button
                 onClick={() => setActiveBorder(border.id)}
-                className={cn(
-                  'px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2',
-                  activeBorderId === border.id
-                    ? 'bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white border border-cyan-500/50'
-                    : 'bg-slate-700/50 text-slate-300 border border-slate-600/50 hover:bg-slate-700'
-                )}
+                className="flex-1 flex items-center gap-2 py-1.5 px-2 text-sm font-medium rounded-lg transition-all"
               >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: border.color }} />
-                边框 {index + 1}
-                <span className="text-xs opacity-60">
+                <span
+                  className={cn(
+                    'w-2.5 h-2.5 rounded-full transition-all',
+                    !border.enabled && 'opacity-40'
+                  )}
+                  style={{ backgroundColor: border.color }}
+                />
+                <span className={cn('text-white', !border.enabled && 'opacity-50 line-through')}>
+                  边框 {index + 1}
+                </span>
+                <span className={cn('text-xs opacity-60', !border.enabled && 'opacity-30')}>
                   {border.type === 'outer' ? '外' : '内'}
                 </span>
               </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleBorderEnabled(border.id);
+                }}
+                className={cn(
+                  'p-1.5 rounded-lg transition-colors',
+                  border.enabled
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-600/50'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/30'
+                )}
+                title={border.enabled ? '停用边框' : '启用边框'}
+              >
+                {border.enabled ? (
+                  <Eye className="w-4 h-4" />
+                ) : (
+                  <EyeOff className="w-4 h-4" />
+                )}
+              </button>
+
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    moveBorder(border.id, 'up');
+                  }}
+                  disabled={index === 0}
+                  className={cn(
+                    'p-1 rounded-md transition-colors',
+                    index === 0
+                      ? 'text-slate-600 cursor-not-allowed'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-600/50'
+                  )}
+                  title="上移"
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    moveBorder(border.id, 'down');
+                  }}
+                  disabled={index === borders.length - 1}
+                  className={cn(
+                    'p-1 rounded-md transition-colors',
+                    index === borders.length - 1
+                      ? 'text-slate-600 cursor-not-allowed'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-600/50'
+                  )}
+                  title="下移"
+                >
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               {borders.length > 1 && (
                 <button
-                  onClick={() => removeBorder(border.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeBorder(border.id);
+                  }}
                   className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                   title="删除边框"
                 >

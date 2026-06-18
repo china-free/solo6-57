@@ -17,8 +17,11 @@ const generateShadowValue = (shadow: ShadowConfig): string => {
 const generateBoxShadowCSS = (borders: BorderConfig[], shadows: ShadowConfig[]): string => {
   const allShadows: string[] = [];
 
-  const outerBorders = borders.filter((b) => b.type === 'outer');
-  const innerBorders = borders.filter((b) => b.type === 'inner');
+  const enabledBorders = borders.filter((b) => b.enabled);
+  const enabledShadows = shadows.filter((s) => s.enabled);
+
+  const outerBorders = enabledBorders.filter((b) => b.type === 'outer');
+  const innerBorders = enabledBorders.filter((b) => b.type === 'inner');
 
   const extraOuterBorders = outerBorders.slice(1);
   let outerAccumulated = outerBorders[0]?.width || 0;
@@ -28,7 +31,7 @@ const generateBoxShadowCSS = (borders: BorderConfig[], shadows: ShadowConfig[]):
     outerAccumulated += border.width;
   });
 
-  shadows
+  enabledShadows
     .filter((s) => s.type === 'outer')
     .forEach((shadow) => {
       allShadows.push(generateShadowValue(shadow));
@@ -42,7 +45,7 @@ const generateBoxShadowCSS = (borders: BorderConfig[], shadows: ShadowConfig[]):
     innerAccumulated += border.width;
   });
 
-  shadows
+  enabledShadows
     .filter((s) => s.type === 'inner')
     .forEach((shadow) => {
       allShadows.push(generateShadowValue(shadow));
@@ -54,14 +57,16 @@ const generateBoxShadowCSS = (borders: BorderConfig[], shadows: ShadowConfig[]):
 
 const generatePrimaryBorderCSS = (borders: BorderConfig[]): string[] => {
   const lines: string[] = [];
-  if (borders.length === 0) {
+  const enabledBorders = borders.filter((b) => b.enabled);
+
+  if (enabledBorders.length === 0) {
     lines.push('  border: none;');
     lines.push('  border-radius: 0px;');
     return lines;
   }
 
-  const outerBorders = borders.filter((b) => b.type === 'outer');
-  const firstBorder = outerBorders.length > 0 ? outerBorders[0] : borders[0];
+  const outerBorders = enabledBorders.filter((b) => b.type === 'outer');
+  const firstBorder = outerBorders.length > 0 ? outerBorders[0] : enabledBorders[0];
 
   lines.push(`  border: ${firstBorder.width}px ${firstBorder.style} ${firstBorder.color};`);
   lines.push(`  border-radius: ${firstBorder.radius}px;`);
@@ -70,11 +75,13 @@ const generatePrimaryBorderCSS = (borders: BorderConfig[]): string[] => {
 
 const generateExtraBordersCSS = (borders: BorderConfig[]): string[] => {
   const lines: string[] = [];
-  const outerBorders = borders.filter((b) => b.type === 'outer');
-  const innerBorders = borders.filter((b) => b.type === 'inner');
+  const enabledBorders = borders.filter((b) => b.enabled);
+  const disabledBorders = borders.filter((b) => !b.enabled);
+  const outerBorders = enabledBorders.filter((b) => b.type === 'outer');
+  const innerBorders = enabledBorders.filter((b) => b.type === 'inner');
 
   if (outerBorders.length > 1) {
-    lines.push('  /* 额外外边框 (通过 outline 和 box-shadow inset 实现) */');
+    lines.push('  /* 额外外边框 (通过 box-shadow 扩展实现) */');
     for (let i = 1; i < outerBorders.length; i++) {
       const border = outerBorders[i];
       const prevWidth = outerBorders
@@ -93,6 +100,13 @@ const generateExtraBordersCSS = (borders: BorderConfig[]): string[] => {
       lines.push(
         `  /* 内边框 ${idx + 1}: ${border.width}px ${border.style} ${border.color} */`
       );
+    });
+  }
+
+  if (disabledBorders.length > 0) {
+    lines.push('  /* 已停用图层:');
+    disabledBorders.forEach((border) => {
+      lines.push(`     ${border.type}边框 ${border.width}px ${border.color} */`);
     });
   }
 
@@ -125,8 +139,11 @@ export interface PreviewStyles {
 export const generatePreviewStyles = (borders: BorderConfig[], shadows: ShadowConfig[]): PreviewStyles => {
   const boxShadowParts: string[] = [];
 
-  const outerBorders = borders.filter((b) => b.type === 'outer');
-  const innerBorders = borders.filter((b) => b.type === 'inner');
+  const enabledBorders = borders.filter((b) => b.enabled);
+  const enabledShadows = shadows.filter((s) => s.enabled);
+
+  const outerBorders = enabledBorders.filter((b) => b.type === 'outer');
+  const innerBorders = enabledBorders.filter((b) => b.type === 'inner');
 
   const extraOuterBorders = outerBorders.slice(1);
   let outerAccumulated = outerBorders[0]?.width || 0;
@@ -136,7 +153,7 @@ export const generatePreviewStyles = (borders: BorderConfig[], shadows: ShadowCo
     outerAccumulated += border.width;
   });
 
-  shadows
+  enabledShadows
     .filter((s) => s.type === 'outer')
     .forEach((shadow) => {
       boxShadowParts.push(generateShadowValue(shadow));
@@ -150,14 +167,14 @@ export const generatePreviewStyles = (borders: BorderConfig[], shadows: ShadowCo
     innerAccumulated += border.width;
   });
 
-  shadows
+  enabledShadows
     .filter((s) => s.type === 'inner')
     .forEach((shadow) => {
       boxShadowParts.push(generateShadowValue(shadow));
     });
 
   const firstBorder =
-    borders.find((b) => b.type === 'outer') || borders[0] || null;
+    enabledBorders.find((b) => b.type === 'outer') || enabledBorders[0] || null;
 
   return {
     boxShadow: boxShadowParts.length > 0 ? boxShadowParts.join(', ') : 'none',
