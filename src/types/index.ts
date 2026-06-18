@@ -1,6 +1,10 @@
 export type BorderStyle = 'solid' | 'dashed' | 'dotted';
 
+export type BorderType = 'outer' | 'inner';
+
 export interface BorderConfig {
+  id: string;
+  type: BorderType;
   width: number;
   style: BorderStyle;
   color: string;
@@ -20,13 +24,17 @@ export interface ShadowConfig {
 }
 
 export interface StyleState {
-  border: BorderConfig;
+  borders: BorderConfig[];
+  activeBorderId: string | null;
   shadows: ShadowConfig[];
   activeShadowId: string | null;
 }
 
 export interface StyleActions {
-  updateBorder: (border: Partial<BorderConfig>) => void;
+  addBorder: () => void;
+  removeBorder: (id: string) => void;
+  updateBorder: (id: string, border: Partial<BorderConfig>) => void;
+  setActiveBorder: (id: string | null) => void;
   addShadow: () => void;
   removeShadow: (id: string) => void;
   updateShadow: (id: string, shadow: Partial<ShadowConfig>) => void;

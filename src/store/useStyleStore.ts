@@ -1,15 +1,21 @@
 import { create } from 'zustand';
 import type { StyleState, StyleActions, BorderConfig, ShadowConfig } from '@/types';
 
-const defaultBorder: BorderConfig = {
-  width: 2,
-  style: 'solid',
-  color: '#06b6d4',
-  radius: 12,
-};
-
 const generateId = (): string => {
   return Math.random().toString(36).substring(2, 11);
+};
+
+const createDefaultBorder = (index: number = 0): BorderConfig => {
+  const defaultColors = ['#06b6d4', '#a855f7', '#f59e0b', '#10b981', '#ef4444'];
+  const offsets = [0, 4, 8, 12, 16];
+  return {
+    id: generateId(),
+    type: 'outer',
+    width: 2,
+    style: 'solid',
+    color: defaultColors[index % defaultColors.length],
+    radius: index === 0 ? 12 : 12 + offsets[index % offsets.length],
+  };
 };
 
 const createDefaultShadow = (): ShadowConfig => ({
@@ -22,16 +28,48 @@ const createDefaultShadow = (): ShadowConfig => ({
   color: 'rgba(0, 0, 0, 0.25)',
 });
 
+const initialBorders: BorderConfig[] = [createDefaultBorder(0)];
 const initialShadows: ShadowConfig[] = [createDefaultShadow()];
 
 export const useStyleStore = create<StyleState & StyleActions>((set) => ({
-  border: defaultBorder,
+  borders: initialBorders,
+  activeBorderId: initialBorders[0]?.id || null,
   shadows: initialShadows,
   activeShadowId: initialShadows[0]?.id || null,
 
-  updateBorder: (border) =>
+  addBorder: () => {
+    set((state) => {
+      const newBorder = createDefaultBorder(state.borders.length);
+      return {
+        borders: [...state.borders, newBorder],
+        activeBorderId: newBorder.id,
+      };
+    });
+  },
+
+  removeBorder: (id) =>
+    set((state) => {
+      const newBorders = state.borders.filter((b) => b.id !== id);
+      const newActiveId =
+        state.activeBorderId === id
+          ? newBorders[newBorders.length - 1]?.id || null
+          : state.activeBorderId;
+      return {
+        borders: newBorders,
+        activeBorderId: newActiveId,
+      };
+    }),
+
+  updateBorder: (id, border) =>
     set((state) => ({
-      border: { ...state.border, ...border },
+      borders: state.borders.map((b) =>
+        b.id === id ? { ...b, ...border } : b
+      ),
+    })),
+
+  setActiveBorder: (id) =>
+    set(() => ({
+      activeBorderId: id,
     })),
 
   addShadow: () => {

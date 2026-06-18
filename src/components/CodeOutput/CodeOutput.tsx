@@ -4,11 +4,11 @@ import { generateCSS } from '@/utils/cssGenerator';
 import { Copy, Check, Code } from 'lucide-react';
 
 export default function CodeOutput() {
-  const border = useStyleStore((state) => state.border);
+  const borders = useStyleStore((state) => state.borders);
   const shadows = useStyleStore((state) => state.shadows);
   const [copied, setCopied] = useState(false);
 
-  const cssCode = generateCSS(border, shadows);
+  const cssCode = generateCSS(borders, shadows);
 
   const handleCopy = async () => {
     try {
@@ -55,15 +55,17 @@ export default function CodeOutput() {
       </div>
 
       <div className="relative">
-        <pre className="bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 overflow-x-auto">
+        <pre className="bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 overflow-x-auto max-h-[320px] overflow-y-auto">
           <code className="text-sm font-mono text-slate-300 leading-relaxed">
             {cssCode.split('\n').map((line, index) => {
               let colorClass = 'text-slate-300';
               if (line.includes('.element')) colorClass = 'text-cyan-400 font-semibold';
+              else if (line.includes('border:')) colorClass = 'text-purple-400';
               else if (line.includes('border-')) colorClass = 'text-purple-400';
               else if (line.includes('box-shadow')) colorClass = 'text-amber-400';
+              else if (line.includes('outline')) colorClass = 'text-pink-400';
               else if (line.includes('}')) colorClass = 'text-slate-500';
-              else if (line.trim().startsWith('/') || line.trim().startsWith('/*')) colorClass = 'text-slate-500 italic';
+              else if (line.trim().startsWith('/*')) colorClass = 'text-slate-500 italic';
 
               return (
                 <div key={index} className="flex">

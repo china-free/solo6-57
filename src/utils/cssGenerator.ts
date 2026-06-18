@@ -1,15 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { BorderConfig, ShadowConfig } from '@/types';
 
-const generateBorderCSS = (border: BorderConfig): string => {
-  const lines: string[] = [];
-  lines.push(`  border-width: ${border.width}px;`);
-  lines.push(`  border-style: ${border.style};`);
-  lines.push(`  border-color: ${border.color};`);
-  lines.push(`  border-radius: ${border.radius}px;`);
-  return lines.join('\n');
-};
-
 const generateShadowValue = (shadow: ShadowConfig): string => {
   const parts: string[] = [];
   if (shadow.type === 'inner') {
@@ -23,31 +14,156 @@ const generateShadowValue = (shadow: ShadowConfig): string => {
   return parts.join(' ');
 };
 
-const generateBoxShadowCSS = (shadows: ShadowConfig[]): string => {
-  if (shadows.length === 0) return '  box-shadow: none;';
-  const shadowValues = shadows.map(generateShadowValue);
-  return `  box-shadow: ${shadowValues.join(',\n              ')};`;
+const generateBoxShadowCSS = (borders: BorderConfig[], shadows: ShadowConfig[]): string => {
+  const allShadows: string[] = [];
+
+  const outerBorders = borders.filter((b) => b.type === 'outer');
+  const innerBorders = borders.filter((b) => b.type === 'inner');
+
+  const extraOuterBorders = outerBorders.slice(1);
+  let outerAccumulated = outerBorders[0]?.width || 0;
+  extraOuterBorders.forEach((border) => {
+    const outerOffset = outerAccumulated + border.width / 2;
+    allShadows.push(`0 0 0 ${outerOffset}px ${border.color}`);
+    outerAccumulated += border.width;
+  });
+
+  shadows
+    .filter((s) => s.type === 'outer')
+    .forEach((shadow) => {
+      allShadows.push(generateShadowValue(shadow));
+    });
+
+  const reversedInner = [...innerBorders].reverse();
+  let innerAccumulated = 0;
+  reversedInner.forEach((border) => {
+    const innerOffset = innerAccumulated + border.width / 2;
+    allShadows.push(`inset 0 0 0 ${innerOffset}px ${border.color}`);
+    innerAccumulated += border.width;
+  });
+
+  shadows
+    .filter((s) => s.type === 'inner')
+    .forEach((shadow) => {
+      allShadows.push(generateShadowValue(shadow));
+    });
+
+  if (allShadows.length === 0) return '  box-shadow: none;';
+  return `  box-shadow: ${allShadows.join(',\n              ')};`;
 };
 
-export const generateCSS = (border: BorderConfig, shadows: ShadowConfig[]): string => {
+const generatePrimaryBorderCSS = (borders: BorderConfig[]): string[] => {
+  const lines: string[] = [];
+  if (borders.length === 0) {
+    lines.push('  border: none;');
+    lines.push('  border-radius: 0px;');
+    return lines;
+  }
+
+  const outerBorders = borders.filter((b) => b.type === 'outer');
+  const firstBorder = outerBorders.length > 0 ? outerBorders[0] : borders[0];
+
+  lines.push(`  border: ${firstBorder.width}px ${firstBorder.style} ${firstBorder.color};`);
+  lines.push(`  border-radius: ${firstBorder.radius}px;`);
+  return lines;
+};
+
+const generateExtraBordersCSS = (borders: BorderConfig[]): string[] => {
+  const lines: string[] = [];
+  const outerBorders = borders.filter((b) => b.type === 'outer');
+  const innerBorders = borders.filter((b) => b.type === 'inner');
+
+  if (outerBorders.length > 1) {
+    lines.push('  /* 额外外边框 (通过 outline 和 box-shadow inset 实现) */');
+    for (let i = 1; i < outerBorders.length; i++) {
+      const border = outerBorders[i];
+      const prevWidth = outerBorders
+        .slice(0, i)
+        .reduce((sum, b) => sum + b.width, 0);
+      const gap = prevWidth;
+      lines.push(
+        `  /* 边框 ${i + 1}: ${border.width}px ${border.style} ${border.color} 间距: ${gap}px */`
+      );
+    }
+  }
+
+  if (innerBorders.length > 0) {
+    lines.push('  /* 内边框 (通过 box-shadow inset 实现) */');
+    innerBorders.forEach((border, idx) => {
+      lines.push(
+        `  /* 内边框 ${idx + 1}: ${border.width}px ${border.style} ${border.color} */`
+      );
+    });
+  }
+
+  return lines;
+};
+
+export const generateCSS = (borders: BorderConfig[], shadows: ShadowConfig[]): string => {
   const cssLines: string[] = [];
   cssLines.push('.element {');
-  cssLines.push(generateBorderCSS(border));
-  cssLines.push(generateBoxShadowCSS(shadows));
+  cssLines.push(...generatePrimaryBorderCSS(borders));
+
+  const extraBorderNotes = generateExtraBordersCSS(borders);
+  if (extraBorderNotes.length > 0) {
+    cssLines.push(...extraBorderNotes);
+  }
+
+  cssLines.push(generateBoxShadowCSS(borders, shadows));
   cssLines.push('}');
   return cssLines.join('\n');
 };
 
-export const generateBoxShadowString = (shadows: ShadowConfig[]): string => {
-  if (shadows.length === 0) return 'none';
-  return shadows.map(generateShadowValue).join(', ');
-};
+export interface PreviewStyles {
+  boxShadow: string;
+  borderWidth: string;
+  borderStyle: string;
+  borderColor: string;
+  borderRadius: string;
+}
 
-export const generateBorderStyleString = (border: BorderConfig): CSSProperties => {
+export const generatePreviewStyles = (borders: BorderConfig[], shadows: ShadowConfig[]): PreviewStyles => {
+  const boxShadowParts: string[] = [];
+
+  const outerBorders = borders.filter((b) => b.type === 'outer');
+  const innerBorders = borders.filter((b) => b.type === 'inner');
+
+  const extraOuterBorders = outerBorders.slice(1);
+  let outerAccumulated = outerBorders[0]?.width || 0;
+  extraOuterBorders.forEach((border) => {
+    const outerOffset = outerAccumulated + border.width / 2;
+    boxShadowParts.push(`0 0 0 ${outerOffset}px ${border.color}`);
+    outerAccumulated += border.width;
+  });
+
+  shadows
+    .filter((s) => s.type === 'outer')
+    .forEach((shadow) => {
+      boxShadowParts.push(generateShadowValue(shadow));
+    });
+
+  const reversedInner = [...innerBorders].reverse();
+  let innerAccumulated = 0;
+  reversedInner.forEach((border) => {
+    const innerOffset = innerAccumulated + border.width / 2;
+    boxShadowParts.push(`inset 0 0 0 ${innerOffset}px ${border.color}`);
+    innerAccumulated += border.width;
+  });
+
+  shadows
+    .filter((s) => s.type === 'inner')
+    .forEach((shadow) => {
+      boxShadowParts.push(generateShadowValue(shadow));
+    });
+
+  const firstBorder =
+    borders.find((b) => b.type === 'outer') || borders[0] || null;
+
   return {
-    borderWidth: `${border.width}px`,
-    borderStyle: border.style,
-    borderColor: border.color,
-    borderRadius: `${border.radius}px`,
+    boxShadow: boxShadowParts.length > 0 ? boxShadowParts.join(', ') : 'none',
+    borderWidth: firstBorder ? `${firstBorder.width}px` : '0px',
+    borderStyle: firstBorder ? firstBorder.style : 'none',
+    borderColor: firstBorder ? firstBorder.color : 'transparent',
+    borderRadius: firstBorder ? `${firstBorder.radius}px` : '0px',
   };
 };
